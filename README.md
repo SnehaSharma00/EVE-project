@@ -1334,24 +1334,3 @@ TOTAL                                     1224    102    9
 
 ---
 
-
-
-## 20. Future Improvements & Roadmap
-
-
-
-- **Redis Caching:** Cache high-frequency read endpoints like diagnostic test catalogues and centre listings.
-
-- **Distributed Lock with Redlock:** Multi-instance distributed locking for high-concurrency slot reservations.
-
-- **Webhook Retry Queues:** Celery / Redis background queue with exponential backoff for outgoing notifications.
-
-- **Rate Limiting:** IP and user token rate limiting using Redis token bucket algorithm.
-
-- **PDF Report Generation:** Secure signed S3 URL uploads for diagnostic test lab results.
-
-
-
----
-
-*Developed with ❤️ for the EVE Healthcare SDE Backend Engineering Evaluation. *
