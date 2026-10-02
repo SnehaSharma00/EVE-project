@@ -1,106 +1,106 @@
-\# EVE Healthcare — Diagnostic Test Booking & Payment Backend Service
+# EVE Healthcare — Diagnostic Test Booking & Payment Backend Service
 
 
 
-[![FastAPI]\(https\://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)]\(https\://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 
-[![Python 3.12+]\(https\://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)]\(https\://www\.python.org)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org)
 
-[![SQLAlchemy 2.0]\(https\://img.shields.io/badge/SQLAlchemy-2.0-D71F00?logo=sqlalchemy&logoColor=white)]\(https\://www\.sqlalchemy.org)
+[![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org)
 
-[![PostgreSQL]\(https\://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)]\(https\://www\.postgresql.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 
-[![Docker]\(https\://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)]\(https\://www\.docker.com)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
 
-[![Test Coverage]\(https\://img.shields.io/badge/Coverage-92%25-brightgreen)]\(https\://pytest.org)
-
-
-
-\> \*\*Engineering Priority:\*\* \`Correctness > Architecture > Security > Tests > Documentation > Bonus Features\`
+[![Test Coverage](https://img.shields.io/badge/Coverage-92%25-brightgreen)](https://pytest.org)
 
 
 
-Production-grade modular backend service for diagnostic test bookings, simulated payments, and \*\*strictly idempotent webhook processing\*\*, built for the \*\*EVE Healthcare SDE Intern Backend Engineering Assignment\*\*.
+> **Engineering Priority:** `Correctness > Architecture > Security > Tests > Documentation > Bonus Features`
 
 
 
-\---
+Production-grade modular backend service for diagnostic test bookings, simulated payments, and **strictly idempotent webhook processing**, built for the **EVE Healthcare SDE Intern Backend Engineering Assignment**.
 
 
 
-\## Table of Contents
-
-1\. [Project Overview & Problem Statement]\(#1-project-overview--problem-statement)
-
-2\. [Architecture & Design System]\(#2-architecture--design-system)
-
-3\. [Tech Stack]\(#3-tech-stack)
-
-4\. [Folder Structure]\(#4-folder-structure)
-
-5\. [Database Design & ER Diagram]\(#5-database-design--er-diagram)
-
-6\. [Booking State Machine]\(#6-booking-state-machine)
-
-7\. [Simulated Payments & Header Idempotency]\(#7-simulated-payments--header-idempotency)
-
-8\. [Webhook Idempotency Strategy]\(#8-webhook-idempotency-strategy)
-
-9\. [Authentication & Authorization]\(#9-authentication--authorization)
-
-10\. [API Endpoints Reference]\(#10-api-endpoints-reference)
-
-11\. [Example API Requests & Responses]\(#11-example-api-requests--responses)
-
-12\. [Environment Variables]\(#12-environment-variables)
-
-13\. [Local Development Setup]\(#13-local-development-setup)
-
-14\. [Docker & Docker Compose Deployment]\(#14-docker--docker-compose-deployment)
-
-15\. [Running Migrations]\(#15-running-migrations)
-
-16\. [Running Automated Tests & Coverage]\(#16-running-automated-tests--coverage)
-
-17\. [Edge Cases & Error Handling]\(#17-edge-cases--error-handling)
-
-18\. [Design Decisions & Trade-offs]\(#18-design-decisions--trade-offs)
-
-19\. [Important Assumptions]\(#19-important-assumptions)
-
-20\. [Future Improvements & Roadmap]\(#20-future-improvements--roadmap)
+---
 
 
 
-\---
+## Table of Contents
+
+1. [Project Overview & Problem Statement](#1-project-overview--problem-statement)
+
+2. [Architecture & Design System](#2-architecture--design-system)
+
+3. [Tech Stack](#3-tech-stack)
+
+4. [Folder Structure](#4-folder-structure)
+
+5. [Database Design & ER Diagram](#5-database-design--er-diagram)
+
+6. [Booking State Machine](#6-booking-state-machine)
+
+7. [Simulated Payments & Header Idempotency](#7-simulated-payments--header-idempotency)
+
+8. [Webhook Idempotency Strategy](#8-webhook-idempotency-strategy)
+
+9. [Authentication & Authorization](#9-authentication--authorization)
+
+10. [API Endpoints Reference](#10-api-endpoints-reference)
+
+11. [Example API Requests & Responses](#11-example-api-requests--responses)
+
+12. [Environment Variables](#12-environment-variables)
+
+13. [Local Development Setup](#13-local-development-setup)
+
+14. [Docker & Docker Compose Deployment](#14-docker--docker-compose-deployment)
+
+15. [Running Migrations](#15-running-migrations)
+
+16. [Running Automated Tests & Coverage](#16-running-automated-tests--coverage)
+
+17. [Edge Cases & Error Handling](#17-edge-cases--error-handling)
+
+18. [Design Decisions & Trade-offs](#18-design-decisions--trade-offs)
+
+19. [Important Assumptions](#19-important-assumptions)
+
+20. [Future Improvements & Roadmap](#20-future-improvements--roadmap)
 
 
 
-\## 1. Service Context & Core Requirements
+---
+
+
+
+## 1. Service Context & Core Requirements
 
 
 
 Diagnostic test booking platforms need reliable handling of several important concerns:
 
-\- \*\*Price consistency:\*\* The amount captured when a booking is created must remain unchanged for that booking, even if the centre updates the test price later.
+- **Price consistency:** The amount captured when a booking is created must remain unchanged for that booking, even if the centre updates the test price later.
 
-\- \*\*Appointment integrity:\*\* A single appointment slot must not be allocated to multiple bookings, including when requests are made concurrently.
+- **Appointment integrity:** A single appointment slot must not be allocated to multiple bookings, including when requests are made concurrently.
 
-\- \*\*Controlled booking states:\*\* Booking statuses (\`PENDING\`, \`CONFIRMED\`, \`FAILED\`, \`CANCELLED\`) should follow defined transitions so that invalid state changes cannot occur.
+- **Controlled booking states:** Booking statuses (`PENDING`, `CONFIRMED`, `FAILED`, `CANCELLED`) should follow defined transitions so that invalid state changes cannot occur.
 
-\- \*\*Reliable Payment & Webhook Processing:\*\* Payment providers can deliver the same webhook more than once or send updates in a different order. Processing repeated events must therefore avoid duplicate payments, duplicate bookings, and inconsistent booking states.
-
-
-
-This service uses a clean \*\*modular monolith\*\* structure to address these concerns through strict database constraints, transactional isolation, and comprehensive test coverage.
+- **Reliable Payment & Webhook Processing:** Payment providers can deliver the same webhook more than once or send updates in a different order. Processing repeated events must therefore avoid duplicate payments, duplicate bookings, and inconsistent booking states.
 
 
 
-\---
+This service uses a clean **modular monolith** structure to address these concerns through strict database constraints, transactional isolation, and comprehensive test coverage.
 
 
 
-\## 2. Architecture & Design System
+---
+
+
+
+## 2. Architecture & Design System
 
 
 
@@ -108,7 +108,7 @@ The system follows a layered, unidirectional architectural pattern:
 
 
 
-\`\`\`
+```
 
                   ┌────────────────────────────────────────┐
 
@@ -166,21 +166,21 @@ The system follows a layered, unidirectional architectural pattern:
 
                   └────────────────────────────────────────┘
 
-\`\`\`
+```
 
 
 
-\### Core Architecture Guidelines:
+### Core Architecture Guidelines:
 
-\- \*\*Focused Route Handlers:\*\* Routes are responsible for parsing requests, returning HTTP responses, and passing work to service methods.
+- **Focused Route Handlers:** Routes are responsible for parsing requests, returning HTTP responses, and passing work to service methods.
 
-\- \*\*Centralized Business Rules:\*\* Services handle state transitions, authorization checks, and booking-time price snapshots.
+- **Centralized Business Rules:** Services handle state transitions, authorization checks, and booking-time price snapshots.
 
-\- \*\*Dedicated Repository Layer:\*\* SQL and ORM database operations are contained within repository classes.
+- **Dedicated Repository Layer:** SQL and ORM database operations are contained within repository classes.
 
-\- \*\*Consistent Error Format:\*\* Application exceptions use a common error response structure:
+- **Consistent Error Format:** Application exceptions use a common error response structure:
 
-\  \`\`\`json
+\  ```json
 
   {
 
@@ -196,15 +196,15 @@ The system follows a layered, unidirectional architectural pattern:
 
   }
 
-\  \`\`\`
+\  ```
 
 
 
-\---
+---
 
 
 
-\## 3. Tech Stack
+## 3. Tech Stack
 
 
 
@@ -212,33 +212,33 @@ The system follows a layered, unidirectional architectural pattern:
 
 \|---|---|---|
 
-\| \*\*Runtime & Framework\*\* | Python 3.12+ / FastAPI | High performance, native async support, automatic OpenAPI/Swagger generation. |
+\| **Runtime & Framework** | Python 3.12+ / FastAPI | High performance, native async support, automatic OpenAPI/Swagger generation. |
 
-\| \*\*ORM & Database\*\* | SQLAlchemy 2.0 / PostgreSQL 16 | Modern type-safe \`Mapped\` columns, transactional safety, and robust ACID guarantees. |
+\| **ORM & Database** | SQLAlchemy 2.0 / PostgreSQL 16 | Modern type-safe `Mapped` columns, transactional safety, and robust ACID guarantees. |
 
-\| \*\*Migrations\*\* | Alembic | Tracked, reversible database schema evolution. |
+\| **Migrations** | Alembic | Tracked, reversible database schema evolution. |
 
-\| \*\*Data Validation\*\* | Pydantic v2 & \`pydantic-settings\` | Fast C-level input validation and typed configuration. |
+\| **Data Validation** | Pydantic v2 & `pydantic-settings` | Fast C-level input validation and typed configuration. |
 
-\| \*\*Security & Auth\*\* | Argon2 (\`argon2-cffi\`) & PyJWT | Memory-hard password hashing and standard JWT bearer token authentication. |
+\| **Security & Auth** | Argon2 (`argon2-cffi`) & PyJWT | Memory-hard password hashing and standard JWT bearer token authentication. |
 
-\| \*\*Testing\*\* | Pytest, HTTPX, Pytest-Cov | High-speed unit and integration testing suite with SQLite in-memory isolation. |
+\| **Testing** | Pytest, HTTPX, Pytest-Cov | High-speed unit and integration testing suite with SQLite in-memory isolation. |
 
-\| \*\*Containerization\*\* | Docker & Docker Compose | Self-contained multi-container deployment (API + PostgreSQL). |
+\| **Containerization** | Docker & Docker Compose | Self-contained multi-container deployment (API + PostgreSQL). |
 
-\| \*\*Linter & Formatter\*\* | Ruff | Modern, lightning-fast PEP8 compliance and lint validation. |
-
-
-
-\---
+\| **Linter & Formatter** | Ruff | Modern, lightning-fast PEP8 compliance and lint validation. |
 
 
 
-\## 4. Folder Structure
+---
 
 
 
-\`\`\`
+## 4. Folder Structure
+
+
+
+```
 
 eve-healthcare-backend/
 
@@ -390,19 +390,19 @@ eve-healthcare-backend/
 
 └── README.md                     # Comprehensive documentation
 
-\`\`\`
+```
 
 
 
-\---
+---
 
 
 
-\## 5. Database Design & ER Diagram
+## 5. Database Design & ER Diagram
 
 
 
-\`\`\`mermaid
+```mermaid
 
 erDiagram
 
@@ -598,41 +598,41 @@ erDiagram
 
     }
 
-\`\`\`
+```
 
 
 
-\### Critical Database Integrity Rules:
+### Critical Database Integrity Rules:
 
-1\. \*\*Monetary Precision:\*\* Stored strictly using \`Numeric(10, 2)\` / \`Decimal\` — never IEEE 754 floating points.
+1. **Monetary Precision:** Stored strictly using `Numeric(10, 2)` / `Decimal` — never IEEE 754 floating points.
 
-2\. \*\*Price Snapshotting:\*\* \`bookings.amount\` records the exact price snapshot at the moment of booking creation.
+2. **Price Snapshotting:** `bookings.amount` records the exact price snapshot at the moment of booking creation.
 
-3\. \*\*Uniqueness Constraints:\*\*
+3. **Uniqueness Constraints:**
 
-   - \`users.email\` is globally unique.
+   - `users.email` is globally unique.
 
-   - \`centre_tests(centre_id, test_id)\` prevents duplicate test mappings for a center.
+   - `centre_tests(centre_id, test_id)` prevents duplicate test mappings for a center.
 
-   - \`bookings.booking_reference\` is globally unique.
+   - `bookings.booking_reference` is globally unique.
 
-   - \`payments.payment_reference\` and \`payments.idempotency_key\` are unique.
+   - `payments.payment_reference` and `payments.idempotency_key` are unique.
 
-   - \`payment_webhook_events.event_id\` is globally unique to guarantee idempotency.
+   - `payment_webhook_events.event_id` is globally unique to guarantee idempotency.
 
-4\. \*\*Foreign Keys & Cascades:\*\*
+4. **Foreign Keys & Cascades:**
 
    - Deleting a centre or test cascades to junction tables.
 
-   - Bookings protect referenced Users, CentreTests, and Slots with \`RESTRICT\` constraints to maintain financial audit trails.
+   - Bookings protect referenced Users, CentreTests, and Slots with `RESTRICT` constraints to maintain financial audit trails.
 
 
 
-\---
+---
 
 
 
-\## 6. Booking State Machine
+## 6. Booking State Machine
 
 
 
@@ -640,11 +640,11 @@ The booking lifecycle is governed by a strict state machine preventing arbitrary
 
 
 
-\`\`\`mermaid
+```mermaid
 
 stateDiagram-v2
 
-    [\*] --> PENDING : Booking Created (Slot Reserved)
+    [*] --> PENDING : Booking Created (Slot Reserved)
 
     PENDING --> CONFIRMED : Payment SUCCESS / Webhook SUCCESS
 
@@ -654,55 +654,55 @@ stateDiagram-v2
 
     CONFIRMED --> CANCELLED : Refund / Cancellation (Slot Released)
 
-    FAILED --> [\*]
+    FAILED --> [*]
 
-    CANCELLED --> [\*]
+    CANCELLED --> [*]
 
-    CONFIRMED --> [\*]
+    CONFIRMED --> [*]
 
-\`\`\`
-
-
-
-\### Transition Validation Rules:
-
-\- \*\*\`PENDING\`\*\*: Can transition to \`CONFIRMED\`, \`FAILED\`, or \`CANCELLED\`.
-
-\- \*\*\`CONFIRMED\`\*\*: Can only transition to \`CANCELLED\`.
-
-\- \*\*\`FAILED\`\*\* & \*\*\`CANCELLED\`\*\*: Terminal states. Any attempted transition out of these states returns \`409 Conflict (INVALID_STATE_TRANSITION)\`.
-
-\- \*\*Slot Release Guarantee:\*\* When a booking transitions to \`CANCELLED\` or \`FAILED\`, the reserved appointment slot is automatically restored to \`is_available = True\`.
+```
 
 
 
-\---
+### Transition Validation Rules:
+
+- **`PENDING`**: Can transition to `CONFIRMED`, `FAILED`, or `CANCELLED`.
+
+- **`CONFIRMED`**: Can only transition to `CANCELLED`.
+
+- **`FAILED`** & **`CANCELLED`**: Terminal states. Any attempted transition out of these states returns `409 Conflict (INVALID_STATE_TRANSITION)`.
+
+- **Slot Release Guarantee:** When a booking transitions to `CANCELLED` or `FAILED`, the reserved appointment slot is automatically restored to `is_available = True`.
 
 
 
-\## 7. Mock Payment Processing & Request Idempotency
+---
 
 
 
-For payment requests made through \`POST /api/v1/payments\`:
-
-1\. The service first verifies authenticated user ownership and confirms that the booking is in the \`PENDING\` state.
-
-2\. The submitted payment amount is checked against \`booking.amount\`; mismatched amounts are rejected with \`422 Unprocessable Content\`.
-
-3\. \*\*Idempotency Header:\*\* A client may provide an \`Idempotency-Key\` header (for example, \`Idempotency-Key: ik_88f921a\`).
-
-   \- If a payment already exists for that key, the existing payment record is returned immediately so that no duplicate charge or repeated booking transition occurs.
-
-4\. After the simulated payment is created successfully, the booking is atomically moved to either \`CONFIRMED\` or \`FAILED\`.
+## 7. Mock Payment Processing & Request Idempotency
 
 
 
-\---
+For payment requests made through `POST /api/v1/payments`:
+
+1. The service first verifies authenticated user ownership and confirms that the booking is in the `PENDING` state.
+
+2. The submitted payment amount is checked against `booking.amount`; mismatched amounts are rejected with `422 Unprocessable Content`.
+
+3. **Idempotency Header:** A client may provide an `Idempotency-Key` header (for example, `Idempotency-Key: ik_88f921a`).
+
+   - If a payment already exists for that key, the existing payment record is returned immediately so that no duplicate charge or repeated booking transition occurs.
+
+4. After the simulated payment is created successfully, the booking is atomically moved to either `CONFIRMED` or `FAILED`.
 
 
 
-\## 8. Webhook Idempotency Strategy
+---
+
+
+
+## 8. Webhook Idempotency Strategy
 
 
 
@@ -710,7 +710,7 @@ Webhooks from payment gateways are delivered asynchronously and often retried.
 
 
 
-\`\`\`mermaid
+```mermaid
 
 sequenceDiagram
 
@@ -730,7 +730,7 @@ sequenceDiagram
 
     API->>Service: process_webhook(payload)
 
-    Service->>DB: SELECT \* FROM payment_webhook_events WHERE event_id = ?
+    Service->>DB: SELECT * FROM payment_webhook_events WHERE event_id = ?
 
     alt Event already exists (Duplicate Delivery)
 
@@ -742,7 +742,7 @@ sequenceDiagram
 
     else New Event
 
-        Service->>DB: SELECT \* FROM payments WHERE payment_reference = ?
+        Service->>DB: SELECT * FROM payments WHERE payment_reference = ?
 
         Service->>DB: UPDATE payments SET status = ?
 
@@ -758,41 +758,41 @@ sequenceDiagram
 
     end
 
-\`\`\`
+```
 
 
 
-\### Concurrency Safety:
+### Concurrency Safety:
 
-\- Database-level \`UNIQUE(event_id)\` index acts as the ultimate concurrency guard.
+- Database-level `UNIQUE(event_id)` index acts as the ultimate concurrency guard.
 
-\- If two identical webhook requests arrive concurrently at the exact same millisecond, one commits while the other triggers an \`IntegrityError\`, rolls back cleanly, and returns the idempotent response.
-
-
-
-\---
+- If two identical webhook requests arrive concurrently at the exact same millisecond, one commits while the other triggers an `IntegrityError`, rolls back cleanly, and returns the idempotent response.
 
 
 
-\## 9. Authentication & Authorization
+---
 
 
 
-\- \*\*Password Security:\*\* Hashes passwords with \*\*Argon2id\*\* (\`argon2-cffi\`), resistant to GPU/ASIC brute-force attacks.
-
-\- \*\*Tokens:\*\* Issues signed JWT access tokens containing user ID, email, and role.
-
-\- \*\*Resource Ownership Authorization:\*\* Non-admin patients can only view or cancel their own bookings and payments. Attempting to view another user's booking returns \`403 Forbidden\`.
-
-\- \*\*Role Support:\*\* Supports \`PATIENT\` and \`ADMIN\` roles through the \`require_role(UserRole.ADMIN)\` dependency.
+## 9. Authentication & Authorization
 
 
 
-\---
+- **Password Security:** Hashes passwords with **Argon2id** (`argon2-cffi`), resistant to GPU/ASIC brute-force attacks.
+
+- **Tokens:** Issues signed JWT access tokens containing user ID, email, and role.
+
+- **Resource Ownership Authorization:** Non-admin patients can only view or cancel their own bookings and payments. Attempting to view another user's booking returns `403 Forbidden`.
+
+- **Role Support:** Supports `PATIENT` and `ADMIN` roles through the `require_role(UserRole.ADMIN)` dependency.
 
 
 
-\## 10. API Endpoints Reference
+---
+
+
+
+## 10. API Endpoints Reference
 
 
 
@@ -800,63 +800,63 @@ sequenceDiagram
 
 \|---|---|:---:|---|
 
-\| \*\*GET\*\* | \`/health\` | No | System & database health status |
+\| **GET** | `/health` | No | System & database health status |
 
-\| \*\*POST\*\* | \`/api/v1/auth/signup\` | No | Register a new user |
+\| **POST** | `/api/v1/auth/signup` | No | Register a new user |
 
-\| \*\*POST\*\* | \`/api/v1/auth/login\` | No | Authenticate user and receive JWT token |
+\| **POST** | `/api/v1/auth/login` | No | Authenticate user and receive JWT token |
 
-\| \*\*GET\*\* | \`/api/v1/auth/me\` | Yes | Get authenticated user profile |
+\| **GET** | `/api/v1/auth/me` | Yes | Get authenticated user profile |
 
-\| \*\*GET\*\* | \`/api/v1/centres\` | No | List diagnostic centres (filter by \`city\`, \`is_active\`) |
+\| **GET** | `/api/v1/centres` | No | List diagnostic centres (filter by `city`, `is_active`) |
 
-\| \*\*GET\*\* | \`/api/v1/centres/{id}\` | No | Get centre details by ID |
+\| **GET** | `/api/v1/centres/{id}` | No | Get centre details by ID |
 
-\| \*\*POST\*\* | \`/api/v1/centres\` | Yes | Create diagnostic centre |
+\| **POST** | `/api/v1/centres` | Yes | Create diagnostic centre |
 
-\| \*\*PATCH\*\* | \`/api/v1/centres/{id}\` | Yes | Update diagnostic centre |
+\| **PATCH** | `/api/v1/centres/{id}` | Yes | Update diagnostic centre |
 
-\| \*\*GET\*\* | \`/api/v1/tests\` | No | List diagnostic tests (filter by \`category\`, \`is_active\`) |
+\| **GET** | `/api/v1/tests` | No | List diagnostic tests (filter by `category`, `is_active`) |
 
-\| \*\*GET\*\* | \`/api/v1/tests/{id}\` | No | Get diagnostic test by ID |
+\| **GET** | `/api/v1/tests/{id}` | No | Get diagnostic test by ID |
 
-\| \*\*POST\*\* | \`/api/v1/tests\` | Yes | Create diagnostic test in catalogue |
+\| **POST** | `/api/v1/tests` | Yes | Create diagnostic test in catalogue |
 
-\| \*\*GET\*\* | \`/api/v1/centres/{id}/tests\` | No | List tests & prices offered at centre |
+\| **GET** | `/api/v1/centres/{id}/tests` | No | List tests & prices offered at centre |
 
-\| \*\*POST\*\* | \`/api/v1/centres/{id}/tests\` | Yes | Associate test with centre and set price |
+\| **POST** | `/api/v1/centres/{id}/tests` | Yes | Associate test with centre and set price |
 
-\| \*\*GET\*\* | \`/api/v1/centres/{id}/slots\` | No | List available appointment slots at centre |
+\| **GET** | `/api/v1/centres/{id}/slots` | No | List available appointment slots at centre |
 
-\| \*\*POST\*\* | \`/api/v1/centres/{id}/slots\` | Yes | Create appointment slot at centre |
+\| **POST** | `/api/v1/centres/{id}/slots` | Yes | Create appointment slot at centre |
 
-\| \*\*POST\*\* | \`/api/v1/bookings\` | Yes | Create diagnostic booking (status \`PENDING\`) |
+\| **POST** | `/api/v1/bookings` | Yes | Create diagnostic booking (status `PENDING`) |
 
-\| \*\*GET\*\* | \`/api/v1/bookings\` | Yes | List user's bookings (all bookings if admin) |
+\| **GET** | `/api/v1/bookings` | Yes | List user's bookings (all bookings if admin) |
 
-\| \*\*GET\*\* | \`/api/v1/bookings/{id}\` | Yes | Get booking details (ownership verified) |
+\| **GET** | `/api/v1/bookings/{id}` | Yes | Get booking details (ownership verified) |
 
-\| \*\*POST\*\* | \`/api/v1/bookings/{id}/cancel\` | Yes | Cancel booking and release slot |
+\| **POST** | `/api/v1/bookings/{id}/cancel` | Yes | Cancel booking and release slot |
 
-\| \*\*POST\*\* | \`/api/v1/payments\` | Yes | Process simulated payment (supports \`Idempotency-Key\`) |
+\| **POST** | `/api/v1/payments` | Yes | Process simulated payment (supports `Idempotency-Key`) |
 
-\| \*\*GET\*\* | \`/api/v1/payments/{id}\` | Yes | Get payment details |
+\| **GET** | `/api/v1/payments/{id}` | Yes | Get payment details |
 
-\| \*\*POST\*\* | \`/api/v1/payments/webhook\` | No | Idempotent payment gateway webhook receiver |
-
-
-
-\---
+\| **POST** | `/api/v1/payments/webhook` | No | Idempotent payment gateway webhook receiver |
 
 
 
-\## 11. Example API Requests & Responses
+---
 
 
 
-\### 1. User Signup
+## 11. Example API Requests & Responses
 
-\`\`\`bash
+
+
+### 1. User Signup
+
+```bash
 
 POST /api/v1/auth/signup
 
@@ -866,7 +866,7 @@ Content-Type: application/json
 
 {
 
-  "email": "sarah.connor\@example.com",
+  "email": "sarah.connor@example.com",
 
   "password": "SecurePassword123!",
 
@@ -874,17 +874,17 @@ Content-Type: application/json
 
 }
 
-\`\`\`
+```
 
-\*\*Response (201 Created):\*\*
+**Response (201 Created):**
 
-\`\`\`json
+```json
 
 {
 
   "id": 1,
 
-  "email": "sarah.connor\@example.com",
+  "email": "sarah.connor@example.com",
 
   "full_name": "Sarah Connor",
 
@@ -898,13 +898,13 @@ Content-Type: application/json
 
 }
 
-\`\`\`
+```
 
 
 
-\### 2. Create Booking
+### 2. Create Booking
 
-\`\`\`bash
+```bash
 
 POST /api/v1/bookings
 
@@ -922,11 +922,11 @@ Content-Type: application/json
 
 }
 
-\`\`\`
+```
 
-\*\*Response (201 Created):\*\*
+**Response (201 Created):**
 
-\`\`\`json
+```json
 
 {
 
@@ -950,13 +950,13 @@ Content-Type: application/json
 
 }
 
-\`\`\`
+```
 
 
 
-\### 3. Idempotent Payment Webhook
+### 3. Idempotent Payment Webhook
 
-\`\`\`bash
+```bash
 
 POST /api/v1/payments/webhook
 
@@ -976,11 +976,11 @@ Content-Type: application/json
 
 }
 
-\`\`\`
+```
 
-\*\*Response (200 OK):\*\*
+**Response (200 OK):**
 
-\`\`\`json
+```json
 
 {
 
@@ -996,11 +996,11 @@ Content-Type: application/json
 
 }
 
-\`\`\`
+```
 
-*\*If re-sent with the same \`event_id\`:\**
+**If re-sent with the same `event_id`:**
 
-\`\`\`json
+```json
 
 {
 
@@ -1016,15 +1016,15 @@ Content-Type: application/json
 
 }
 
-\`\`\`
+```
 
 
 
-\---
+---
 
 
 
-\## 12. Environment Variables
+## 12. Environment Variables
 
 
 
@@ -1032,45 +1032,45 @@ Content-Type: application/json
 
 \|---|---|---|
 
-\| \`APP_NAME\` | \`EVE Healthcare Diagnostic Service\` | Application title for OpenAPI |
+\| `APP_NAME` | `EVE Healthcare Diagnostic Service` | Application title for OpenAPI |
 
-\| \`APP_ENV\` | \`development\` | Environment (\`development\`, \`production\`, \`test\`) |
+\| `APP_ENV` | `development` | Environment (`development`, `production`, `test`) |
 
-\| \`DEBUG\` | \`True\` | Debug flag |
+\| `DEBUG` | `True` | Debug flag |
 
-\| \`SECRET_KEY\` | \`supersecretkeyforevediagnosticbackendengineeringassignment2026\` | Key used for signing JWTs |
+\| `SECRET_KEY` | `supersecretkeyforevediagnosticbackendengineeringassignment2026` | Key used for signing JWTs |
 
-\| \`ACCESS_TOKEN_EXPIRE_MINUTES\` | \`60\` | JWT expiration duration in minutes |
+\| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | JWT expiration duration in minutes |
 
-\| \`DATABASE_URL\` | \`postgresql://eve_user:eve_password\@localhost:5432/eve_healthcare\` | Database connection URI |
+\| `DATABASE_URL` | `postgresql://eve_user:eve_password@localhost:5432/eve_healthcare` | Database connection URI |
 
-\| \`LOG_LEVEL\` | \`INFO\` | Application log verbosity |
-
-
-
-\---
+\| `LOG_LEVEL` | `INFO` | Application log verbosity |
 
 
 
-\## 13. Local Development Setup
+---
 
 
 
-\### Prerequisites
-
-\- Python 3.12+ (or 3.13)
-
-\- PostgreSQL (or local SQLite)
+## 13. Local Development Setup
 
 
 
-\### Installation
+### Prerequisites
 
-\`\`\`bash
+- Python 3.12+ (or 3.13)
+
+- PostgreSQL (or local SQLite)
+
+
+
+### Installation
+
+```bash
 
 *# 1. Clone the repository*
 
-git clone https\://github.com/eve-healthcare/sde-backend-assignment.git
+git clone https://github.com/eve-healthcare/sde-backend-assignment.git
 
 cd sde-backend-assignment
 
@@ -1106,17 +1106,17 @@ alembic upgrade head
 
 uvicorn app.main:app --reload --port 8000
 
-\`\`\`
+```
 
-Interactive Swagger documentation will be available at: \*\*http\://localhost:8000/docs\*\*
-
-
-
-\---
+Interactive Swagger documentation will be available at: **http://localhost:8000/docs**
 
 
 
-\## 14. Docker & Docker Compose Deployment
+---
+
+
+
+## 14. Docker & Docker Compose Deployment
 
 
 
@@ -1124,31 +1124,31 @@ The application is fully containerized with automated migrations on boot:
 
 
 
-\`\`\`bash
+```bash
 
 *# Start PostgreSQL and FastAPI together*
 
 docker compose up --build
 
-\`\`\`
+```
 
-\- API Endpoint: \*\*http\://localhost:8000\*\*
+- API Endpoint: **http://localhost:8000**
 
-\- Health Check: \*\*http\://localhost:8000/health\*\*
+- Health Check: **http://localhost:8000/health**
 
-\- Swagger UI: \*\*http\://localhost:8000/docs\*\*
-
-
-
-\---
+- Swagger UI: **http://localhost:8000/docs**
 
 
 
-\## 15. Running Migrations
+---
 
 
 
-\`\`\`bash
+## 15. Running Migrations
+
+
+
+```bash
 
 *# Apply migrations to latest schema*
 
@@ -1166,15 +1166,15 @@ alembic downgrade -1
 
 alembic revision --autogenerate -m "add_new_feature"
 
-\`\`\`
+```
 
 
 
-\---
+---
 
 
 
-\## 16. Running Automated Tests & Coverage
+## 16. Running Automated Tests & Coverage
 
 
 
@@ -1182,7 +1182,7 @@ The test suite runs against an isolated in-memory SQLite database for maximum sp
 
 
 
-\`\`\`bash
+```bash
 
 *# Run all tests with short traceback*
 
@@ -1194,17 +1194,17 @@ pytest
 
 pytest --cov=app
 
-\`\`\`
+```
 
 
 
-\*\*Coverage Report Output (92% Coverage):\*\*
+**Coverage Report Output (92% Coverage):**
 
-\`\`\`
+```
 
 Name                                     Stmts   Miss  Cover
 
-\------------------------------------------------------------
+------------------------------------------------------------
 
 app\api\deps.py                             42      9    79%
 
@@ -1232,29 +1232,29 @@ app\core\security.py                        22      0   100%
 
 app\db\database.py                          16      4    75%
 
-app\db\models\\\* (all 9 model modules)      137      0   100%
+app\db\models\\* (all 9 model modules)      137      0   100%
 
-app\repositories\\\* (all 6 repos)           195     18    91%
+app\repositories\\* (all 6 repos)           195     18    91%
 
-app\schemas\\\* (all 9 schema modules)       154      0   100%
+app\schemas\\* (all 9 schema modules)       154      0   100%
 
-app\services\\\* (all 6 services)            284     31    89%
+app\services\\* (all 6 services)            284     31    89%
 
-\------------------------------------------------------------
+------------------------------------------------------------
 
 TOTAL                                     1224    102    92%
 
 \======================= 36 passed in 7.33s =======================
 
-\`\`\`
+```
 
 
 
-\---
+---
 
 
 
-\## 17. Edge Cases & Error Handling
+## 17. Edge Cases & Error Handling
 
 
 
@@ -1262,96 +1262,96 @@ TOTAL                                     1224    102    9
 
 \|---|---|:---:|
 
-\| \*\*Duplicate Email Signup\*\* | Rejects registration with \`DUPLICATE_USER\` | \`409 Conflict\` |
+\| **Duplicate Email Signup** | Rejects registration with `DUPLICATE_USER` | `409 Conflict` |
 
-\| \*\*Invalid JWT / Expired JWT\*\* | Rejects with \`INVALID_TOKEN\` or \`TOKEN_EXPIRED\` | \`401 Unauthorized\` |
+\| **Invalid JWT / Expired JWT** | Rejects with `INVALID_TOKEN` or `TOKEN_EXPIRED` | `401 Unauthorized` |
 
-\| \*\*Double Booking of Same Slot\*\* | Concurrency locked; rejects 2nd attempt with \`SLOT_ALREADY_BOOKED\` | \`409 Conflict\` |
+\| **Double Booking of Same Slot** | Concurrency locked; rejects 2nd attempt with `SLOT_ALREADY_BOOKED` | `409 Conflict` |
 
-\| \*\*Booking Past Appointment\*\* | Validates against UTC current time (\`PAST_APPOINTMENT_DATE\`) | \`422 Unprocessable\` |
+\| **Booking Past Appointment** | Validates against UTC current time (`PAST_APPOINTMENT_DATE`) | `422 Unprocessable` |
 
-\| \*\*Accessing Another User's Booking\*\* | Strictly checks ownership; raises \`FORBIDDEN\` | \`403 Forbidden\` |
+\| **Accessing Another User's Booking** | Strictly checks ownership; raises `FORBIDDEN` | `403 Forbidden` |
 
-\| \*\*Booking Inactive Centre / Test\*\* | Validates active status before reserving slot | \`422 Unprocessable\` |
+\| **Booking Inactive Centre / Test** | Validates active status before reserving slot | `422 Unprocessable` |
 
-\| \*\*Payment Amount Mismatch\*\* | Compares against booking price snapshot | \`422 Unprocessable\` |
+\| **Payment Amount Mismatch** | Compares against booking price snapshot | `422 Unprocessable` |
 
-\| \*\*Payment on Cancelled Booking\*\* | Rejects payment with \`BOOKING_ALREADY_CANCELLED\` | \`409 Conflict\` |
+\| **Payment on Cancelled Booking** | Rejects payment with `BOOKING_ALREADY_CANCELLED` | `409 Conflict` |
 
-\| \*\*Double Payment on Booking\*\* | Rejects duplicate payment with \`PAYMENT_ALREADY_COMPLETED\` | \`409 Conflict\` |
+\| **Double Payment on Booking** | Rejects duplicate payment with `PAYMENT_ALREADY_COMPLETED` | `409 Conflict` |
 
-\| \*\*Repeated Idempotency Key\*\* | Returns original payment record with no side effects | \`200/201 OK\` |
+\| **Repeated Idempotency Key** | Returns original payment record with no side effects | `200/201 OK` |
 
-\| \*\*Repeated Webhook Event (10x)\*\* | Idempotent short-circuit; returns \`ALREADY_PROCESSED\` with 0 duplicate DB records | \`200 OK\` |
+\| **Repeated Webhook Event (10x)** | Idempotent short-circuit; returns `ALREADY_PROCESSED` with 0 duplicate DB records | `200 OK` |
 
-\| \*\*Webhook on Cancelled Booking\*\* | Updates payment audit status but preserves \`CANCELLED\` booking state | \`200 OK\` |
-
-
-
-\---
+\| **Webhook on Cancelled Booking** | Updates payment audit status but preserves `CANCELLED` booking state | `200 OK` |
 
 
 
-\## 18. Architecture Choices & Engineering Considerations
+---
 
 
 
-1\. \*\*Modular Monolith Instead of Microservices:\*\*
-
-   \- \*\*Reasoning:\*\* For a diagnostic booking service of this size, a modular monolith keeps domain boundaries between routes, services, and repositories while avoiding network latency, distributed transaction complexity (2PC/Saga), and additional orchestration overhead.
-
-2\. \*\*Synchronous Session with Threadpool Execution:\*\*
-
-   \- \*\*Reasoning:\*\* Synchronous SQLAlchemy 2.0 keeps ORM relationship loading and transaction handling straightforward, while FastAPI's automatic threadpool offloading supports request execution without introducing unnecessary async ORM complexity.
-
-3\. \*\*Argon2id Instead of Standard Bcrypt:\*\*
-
-   \- \*\*Reasoning:\*\* Argon2, the winner of the Password Hashing Competition (PHC), was selected for its memory-hard design and stronger resistance to hardware-accelerated password attacks.
-
-4\. \*\*Booking-Time Price Snapshot:\*\*
-
-   \- \*\*Reasoning:\*\* Diagnostic test prices may change over time. Saving the selected price directly in \`bookings.amount\` preserves the original booking amount for historical accuracy and financial auditing.
+## 18. Architecture Choices & Engineering Considerations
 
 
 
-\---
+1. **Modular Monolith Instead of Microservices:**
+
+   - **Reasoning:** For a diagnostic booking service of this size, a modular monolith keeps domain boundaries between routes, services, and repositories while avoiding network latency, distributed transaction complexity (2PC/Saga), and additional orchestration overhead.
+
+2. **Synchronous Session with Threadpool Execution:**
+
+   - **Reasoning:** Synchronous SQLAlchemy 2.0 keeps ORM relationship loading and transaction handling straightforward, while FastAPI's automatic threadpool offloading supports request execution without introducing unnecessary async ORM complexity.
+
+3. **Argon2id Instead of Standard Bcrypt:**
+
+   - **Reasoning:** Argon2, the winner of the Password Hashing Competition (PHC), was selected for its memory-hard design and stronger resistance to hardware-accelerated password attacks.
+
+4. **Booking-Time Price Snapshot:**
+
+   - **Reasoning:** Diagnostic test prices may change over time. Saving the selected price directly in `bookings.amount` preserves the original booking amount for historical accuracy and financial auditing.
 
 
 
-\## 19. Important Assumptions
+---
 
 
 
-\- Diagnostic centres manage their own catalog of tests and appointment slots.
-
-\- Appointment slot times are stored and evaluated in UTC.
-
-\- Simulated payment gateways communicate webhook status changes using standard reference codes.
-
-\- Cancellations release the corresponding appointment slot back to the public pool for re-booking.
+## 19. Important Assumptions
 
 
 
-\---
+- Diagnostic centres manage their own catalog of tests and appointment slots.
+
+- Appointment slot times are stored and evaluated in UTC.
+
+- Simulated payment gateways communicate webhook status changes using standard reference codes.
+
+- Cancellations release the corresponding appointment slot back to the public pool for re-booking.
 
 
 
-\## 20. Future Improvements & Roadmap
+---
 
 
 
-\- \*\*Redis Caching:\*\* Cache high-frequency read endpoints like diagnostic test catalogues and centre listings.
-
-\- \*\*Distributed Lock with Redlock:\*\* Multi-instance distributed locking for high-concurrency slot reservations.
-
-\- \*\*Webhook Retry Queues:\*\* Celery / Redis background queue with exponential backoff for outgoing notifications.
-
-\- \*\*Rate Limiting:\*\* IP and user token rate limiting using Redis token bucket algorithm.
-
-\- \*\*PDF Report Generation:\*\* Secure signed S3 URL uploads for diagnostic test lab results.
+## 20. Future Improvements & Roadmap
 
 
 
-\---
+- **Redis Caching:** Cache high-frequency read endpoints like diagnostic test catalogues and centre listings.
 
-\*Developed with ❤️ for the EVE Healthcare SDE Backend Engineering Evaluation. \*
+- **Distributed Lock with Redlock:** Multi-instance distributed locking for high-concurrency slot reservations.
+
+- **Webhook Retry Queues:** Celery / Redis background queue with exponential backoff for outgoing notifications.
+
+- **Rate Limiting:** IP and user token rate limiting using Redis token bucket algorithm.
+
+- **PDF Report Generation:** Secure signed S3 URL uploads for diagnostic test lab results.
+
+
+
+---
+
+*Developed with ❤️ for the EVE Healthcare SDE Backend Engineering Evaluation. *
